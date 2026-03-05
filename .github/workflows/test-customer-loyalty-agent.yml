@@ -1,0 +1,56 @@
+name: Test Customer Loyalty Agent
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/app/agents/customerLoyaltyAgent_initializer.py'
+      - 'src/prompts/CustomerLoyaltyAgentPrompt.txt'
+      - 'src/app/tools/discountLogic.py'
+      - 'src/requirements.txt'
+
+jobs:
+  test-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          cd src
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create .env file from secrets
+        run: |
+          cd src
+          cat > .env << 'EOF'
+          ${{ secrets.ENV }}
+          EOF
+
+      - name: Run Customer Loyalty Agent Initializer
+        env:
+          FOUNDRY_ENDPOINT: ${{ secrets.FOUNDRY_ENDPOINT }}
+          FOUNDRY_KEY: ${{ secrets.FOUNDRY_KEY }}
+          gpt_deployment: ${{ secrets.GPT_DEPLOYMENT }}
+        run: |
+          cd src/app/agents
+          python customerLoyaltyAgent_initializer.py
+
+      - name: Log test completion
+        if: success()
+        run: echo "Customer Loyalty Agent initialization test completed successfully"
+
+      - name: Log test failure
+        if: failure()
+        run: |
+          echo "Customer Loyalty Agent initialization test failed"
+          exit 1
